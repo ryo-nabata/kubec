@@ -9,7 +9,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
-	"kubec/utils"
+	"github.com/ryo-nabata/kubec/utils"
 )
 
 var showCurrent bool
