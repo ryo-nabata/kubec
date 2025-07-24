@@ -12,12 +12,13 @@ import (
 )
 
 type KubeConfig struct {
-	ApiVersion     string     `yaml:"apiVersion"`
-	Kind           string     `yaml:"kind"`
-	CurrentContext string     `yaml:"current-context"`
-	Contexts       []Context  `yaml:"contexts"`
-	Clusters       []Cluster  `yaml:"clusters"`
-	Users          []User     `yaml:"users"`
+	ApiVersion     string                 `yaml:"apiVersion"`
+	Kind           string                 `yaml:"kind"`
+	CurrentContext string                 `yaml:"current-context"`
+	Contexts       []Context              `yaml:"contexts"`
+	Clusters       []Cluster              `yaml:"clusters"`
+	Users          []User                 `yaml:"users"`
+	Preferences    map[string]interface{} `yaml:"preferences,omitempty"`
 }
 
 type Context struct {
@@ -26,8 +27,9 @@ type Context struct {
 }
 
 type ContextInfo struct {
-	Cluster string `yaml:"cluster"`
-	User    string `yaml:"user"`
+	Cluster   string `yaml:"cluster"`
+	User      string `yaml:"user"`
+	Namespace string `yaml:"namespace,omitempty"`
 }
 
 type Cluster struct {
@@ -36,7 +38,10 @@ type Cluster struct {
 }
 
 type ClusterInfo struct {
-	Server string `yaml:"server"`
+	Server                   string `yaml:"server"`
+	CertificateAuthority     string `yaml:"certificate-authority,omitempty"`
+	CertificateAuthorityData string `yaml:"certificate-authority-data,omitempty"`
+	InsecureSkipTLSVerify    bool   `yaml:"insecure-skip-tls-verify,omitempty"`
 }
 
 type User struct {
@@ -45,7 +50,29 @@ type User struct {
 }
 
 type UserInfo struct {
-	Token string `yaml:"token,omitempty"`
+	Token                string                 `yaml:"token,omitempty"`
+	ClientCertificate    string                 `yaml:"client-certificate,omitempty"`
+	ClientKey            string                 `yaml:"client-key,omitempty"`
+	ClientCertificateData string                `yaml:"client-certificate-data,omitempty"`
+	ClientKeyData        string                 `yaml:"client-key-data,omitempty"`
+	Username             string                 `yaml:"username,omitempty"`
+	Password             string                 `yaml:"password,omitempty"`
+	Exec                 *ExecConfig            `yaml:"exec,omitempty"`
+	AuthProvider         map[string]interface{} `yaml:"auth-provider,omitempty"`
+}
+
+type ExecConfig struct {
+	APIVersion         string                 `yaml:"apiVersion,omitempty"`
+	Command            string                 `yaml:"command,omitempty"`
+	Args               []string               `yaml:"args,omitempty"`
+	Env                []ExecEnvVar           `yaml:"env,omitempty"`
+	InteractiveMode    string                 `yaml:"interactiveMode,omitempty"`
+	ProvideClusterInfo bool                   `yaml:"provideClusterInfo,omitempty"`
+}
+
+type ExecEnvVar struct {
+	Name  string `yaml:"name"`
+	Value string `yaml:"value"`
 }
 
 func GetKubeConfigPath() string {
