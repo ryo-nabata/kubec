@@ -2,8 +2,32 @@ package utils
 
 import (
 	"fmt"
+	"io"
+
+	"github.com/chzyer/readline"
 	"github.com/fatih/color"
 )
+
+// noBellStdout wraps readline's stdout and discards bell characters (\a)
+// so that promptui.Select does not trigger the terminal beep on every
+// keystroke (see manifoldco/promptui#49).
+type noBellStdout struct {
+	w io.Writer
+}
+
+func (n *noBellStdout) Write(p []byte) (int, error) {
+	if len(p) == 1 && p[0] == readline.CharBell {
+		return len(p), nil
+	}
+	return n.w.Write(p)
+}
+
+func (n *noBellStdout) Close() error {
+	return nil
+}
+
+// NoBellStdout is passed to promptui.Select.Stdout to suppress terminal bells.
+var NoBellStdout io.WriteCloser = &noBellStdout{w: readline.Stdout}
 
 func PrintSuccess(message string) {
 	fmt.Printf("✓ %s\n", color.GreenString(message))

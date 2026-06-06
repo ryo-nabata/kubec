@@ -80,6 +80,7 @@ var rootCmd = &cobra.Command{
 			Label:     "Select a context",
 			Items:     contexts,
 			Templates: templates,
+			Stdout:    utils.NoBellStdout,
 		}
 
 		// Set current context as initial selection
