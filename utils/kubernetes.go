@@ -166,6 +166,53 @@ func SetCurrentContext(contextName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to write kubeconfig: %v", err)
 	}
-	
+
+	return nil
+}
+
+// UnsetCurrentContext removes the top-level current-context key from the
+// kubeconfig, leaving no context selected. Unlike SetCurrentContext, this
+// edits the file via yaml.Node so that all other fields are preserved
+// verbatim, including ones not modeled by the KubeConfig struct
+// (e.g. extensions, proxy-url, exec plugin extras).
+func UnsetCurrentContext() error {
+	configPath := GetKubeConfigPath()
+
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return fmt.Errorf("kubeconfig file not found: %s", configPath)
+	}
+
+	data, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		return fmt.Errorf("failed to read kubeconfig file: %v", err)
+	}
+
+	var root yaml.Node
+	if err := yaml.Unmarshal(data, &root); err != nil {
+		return fmt.Errorf("failed to parse kubeconfig file: %v", err)
+	}
+
+	if len(root.Content) == 0 || root.Content[0].Kind != yaml.MappingNode {
+		return fmt.Errorf("invalid kubeconfig format")
+	}
+
+	// Remove the top-level "current-context" key/value pair if present.
+	m := root.Content[0]
+	for i := 0; i+1 < len(m.Content); i += 2 {
+		if m.Content[i].Value == "current-context" {
+			m.Content = append(m.Content[:i], m.Content[i+2:]...)
+			break
+		}
+	}
+
+	out, err := yaml.Marshal(&root)
+	if err != nil {
+		return fmt.Errorf("failed to prepare kubeconfig write: %v", err)
+	}
+
+	if err := ioutil.WriteFile(configPath, out, 0644); err != nil {
+		return fmt.Errorf("failed to write kubeconfig: %v", err)
+	}
+
 	return nil
 }

@@ -67,45 +67,70 @@ var rootCmd = &cobra.Command{
 		}
 
 		currentContext := utils.GetCurrentContext()
-		
-		// Create prompt template
+
+		// Build selectable items: the "unset" entry first, then each context.
+		// The current context is flagged so it can be marked in the list.
+		items := []contextItem{{Name: unsetContextLabel, IsUnset: true}}
+		for _, context := range contexts {
+			items = append(items, contextItem{
+				Name:      context,
+				IsCurrent: context == currentContext,
+			})
+		}
+
+		// Create prompt template. The current context is annotated with
+		// "(current)" so it stays identifiable even though the cursor
+		// defaults to the "unset" entry at the top.
 		templates := &promptui.SelectTemplates{
-			Label:    "{{ . }}",
-			Active:   "→ {{ . | cyan }}",
-			Inactive: "  {{ . | white }}",
-			Selected: "✓ {{ . | green }}",
+			Label:    "{{ .Name }}",
+			Active:   "→ {{ .Name | cyan }}{{ if .IsCurrent }} (current){{ end }}",
+			Inactive: "  {{ .Name }}{{ if .IsCurrent }} (current){{ end }}",
+			Selected: "✓ {{ .Name | green }}",
 		}
 
 		prompt := promptui.Select{
 			Label:     "Select a context",
-			Items:     contexts,
+			Items:     items,
 			Templates: templates,
+			CursorPos: 0, // Default to the "unset" entry (no context selected)
 		}
 
-		// Set current context as initial selection
-		if currentContext != "" {
-			for i, context := range contexts {
-				if context == currentContext {
-					prompt.CursorPos = i
-					break
-				}
-			}
-		}
-
-		_, selectedContext, err := prompt.Run()
+		selectedIndex, _, err := prompt.Run()
 		if err != nil {
 			fmt.Printf("Selection cancelled: %v\n", err)
 			return
 		}
+		selected := items[selectedIndex]
+
+		// Unset the current context
+		if selected.IsUnset {
+			if err := utils.UnsetCurrentContext(); err != nil {
+				log.Fatalf("Failed to unset context: %v", err)
+			}
+			fmt.Println("Current context unset (no context selected)")
+			return
+		}
 
 		// Switch context
-		err = utils.SetCurrentContext(selectedContext)
+		err = utils.SetCurrentContext(selected.Name)
 		if err != nil {
 			log.Fatalf("Failed to switch context: %v", err)
 		}
 
-		fmt.Printf("Switched to context '%s'\n", color.GreenString(selectedContext))
+		fmt.Printf("Switched to context '%s'\n", color.GreenString(selected.Name))
 	},
+}
+
+// unsetContextLabel is the menu entry shown in interactive mode that clears
+// the current-context. The angle brackets keep it from colliding with a real
+// Kubernetes context name.
+const unsetContextLabel = "<未選択 / unset current-context>"
+
+// contextItem is a single entry in the interactive context selector.
+type contextItem struct {
+	Name      string
+	IsCurrent bool
+	IsUnset   bool
 }
 
 func shouldRunDirectContextSwitch(arg string) bool {
