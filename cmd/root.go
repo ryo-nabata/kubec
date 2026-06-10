@@ -92,7 +92,8 @@ var rootCmd = &cobra.Command{
 			Label:     "Select a context",
 			Items:     items,
 			Templates: templates,
-			CursorPos: 0, // Default to the "unset" entry (no context selected)
+			CursorPos: 0,                  // Default to the "unset" entry (no context selected)
+			Stdout:    utils.NoBellStdout, // Suppress the terminal bell on navigation
 		}
 
 		selectedIndex, _, err := prompt.Run()
