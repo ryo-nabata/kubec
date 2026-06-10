@@ -69,13 +69,19 @@ var rootCmd = &cobra.Command{
 		currentContext := utils.GetCurrentContext()
 
 		// Build selectable items: the "unset" entry first, then each context.
-		// The current context is flagged so it can be marked in the list.
+		// The cursor defaults to the current context for orientation (so an
+		// accidental Enter just re-selects the current context rather than
+		// unsetting it). Unsetting is always available as the first entry.
 		items := []contextItem{{Name: unsetContextLabel, IsUnset: true}}
+		cursorPos := 0
 		for _, context := range contexts {
 			items = append(items, contextItem{
 				Name:      context,
 				IsCurrent: context == currentContext,
 			})
+			if context == currentContext {
+				cursorPos = len(items) - 1
+			}
 		}
 
 		// Create prompt template. The current context is annotated with
@@ -92,7 +98,7 @@ var rootCmd = &cobra.Command{
 			Label:     "Select a context",
 			Items:     items,
 			Templates: templates,
-			CursorPos: 0,                  // Default to the "unset" entry (no context selected)
+			CursorPos: cursorPos,          // Default to the current context
 			Stdout:    utils.NoBellStdout, // Suppress the terminal bell on navigation
 		}
 
@@ -125,7 +131,7 @@ var rootCmd = &cobra.Command{
 // unsetContextLabel is the menu entry shown in interactive mode that clears
 // the current-context. The angle brackets keep it from colliding with a real
 // Kubernetes context name.
-const unsetContextLabel = "<未選択 / unset current-context>"
+const unsetContextLabel = "<unset current-context>"
 
 // contextItem is a single entry in the interactive context selector.
 type contextItem struct {

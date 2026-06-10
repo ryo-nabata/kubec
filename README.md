@@ -24,7 +24,7 @@ kubec
 ```
 A list of available contexts will be displayed and you can select using arrow keys.
 
-The list starts with a special **`<未選択 / unset current-context>`** entry, which is the default cursor position. Selecting it clears the current context (equivalent to `kubectl config unset current-context`), leaving no context selected. The entry matching the active context is annotated with `(current)`.
+The cursor starts on the active context (annotated with `(current)`). The list also includes a special **`<unset current-context>`** entry at the top; selecting it clears the current context (equivalent to `kubectl config unset current-context`), leaving no context selected.
 
 ### Direct Specification
 ```bash
@@ -41,7 +41,7 @@ kubec -c
 Display the currently active context.
 
 ### Unset Context
-Run interactive mode and choose the `<未選択 / unset current-context>` entry (selected by default):
+Run interactive mode and choose the `<unset current-context>` entry:
 ```bash
 kubec
 ```
