@@ -3,6 +3,7 @@ package utils
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"gopkg.in/yaml.v3"
 )
@@ -227,5 +228,82 @@ func TestSetCurrentContext(t *testing.T) {
 	err = SetCurrentContext("non-existent-context")
 	if err == nil {
 		t.Error("Expected error when setting non-existent context, but got none")
+	}
+}
+
+func TestUnsetCurrentContext(t *testing.T) {
+	tempDir := t.TempDir()
+	configPath := filepath.Join(tempDir, "config")
+
+	// Raw kubeconfig including fields NOT modeled by the KubeConfig struct
+	// (top-level "extensions", cluster "proxy-url"/"tls-server-name") to
+	// verify they survive the unset operation.
+	rawConfig := `apiVersion: v1
+kind: Config
+current-context: context-a
+extensions:
+- name: custom-extension
+  extension:
+    foo: bar
+clusters:
+- name: cluster-a
+  cluster:
+    server: https://server-a
+    proxy-url: http://proxy.example.com:8080
+    tls-server-name: custom.tls.name
+contexts:
+- name: context-a
+  context:
+    cluster: cluster-a
+    user: user-a
+users:
+- name: user-a
+  user:
+    token: secret-token
+`
+
+	if err := os.WriteFile(configPath, []byte(rawConfig), 0644); err != nil {
+		t.Fatalf("Failed to write test config: %v", err)
+	}
+
+	os.Setenv("KUBECONFIG", configPath)
+	defer os.Unsetenv("KUBECONFIG")
+
+	if err := UnsetCurrentContext(); err != nil {
+		t.Fatalf("UnsetCurrentContext failed: %v", err)
+	}
+
+	// current-context should now be empty.
+	if got := GetCurrentContext(); got != "" {
+		t.Errorf("Expected empty current context after unset, but got '%s'", got)
+	}
+
+	// The current-context key itself should be removed from the file.
+	out, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("Failed to read config after unset: %v", err)
+	}
+	written := string(out)
+	if strings.Contains(written, "current-context:") {
+		t.Errorf("Expected current-context key to be removed, but file still contains it:\n%s", written)
+	}
+
+	// Fields not modeled by the struct must be preserved verbatim.
+	preserved := []string{
+		"custom-extension",
+		"proxy-url: http://proxy.example.com:8080",
+		"tls-server-name: custom.tls.name",
+		"token: secret-token",
+	}
+	for _, want := range preserved {
+		if !strings.Contains(written, want) {
+			t.Errorf("Expected unset to preserve %q, but it was lost:\n%s", want, written)
+		}
+	}
+
+	// Contexts/clusters/users should still be intact and loadable.
+	contexts := GetContexts()
+	if len(contexts) != 1 || contexts[0] != "context-a" {
+		t.Errorf("Expected contexts to be preserved as [context-a], but got %v", contexts)
 	}
 }

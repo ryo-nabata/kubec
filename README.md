@@ -24,6 +24,8 @@ kubec
 ```
 A list of available contexts will be displayed and you can select using arrow keys.
 
+The cursor starts on the active context (annotated with `(current)`). The list also includes a special **`<unset current-context>`** entry at the top; selecting it clears the current context (equivalent to `kubectl config unset current-context`), leaving no context selected.
+
 ### Direct Specification
 ```bash
 kubec my-cluster
@@ -37,6 +39,13 @@ kubec --current
 kubec -c
 ```
 Display the currently active context.
+
+### Unset Context
+Run interactive mode and choose the `<unset current-context>` entry:
+```bash
+kubec
+```
+This removes the `current-context` key from your kubeconfig so that no context is selected. All other kubeconfig fields are preserved.
 
 ## Prerequisites
 
